@@ -1,16 +1,15 @@
 """
 1.Read file name then go into the note_project floder
 2.For each page extract the grand_staff into the grand_staff floder, then save as grad_staff_number 
+
+Input:
+* Music Sheet Image
+
+Output:
+* Grand Staff Image
 """
-"""        if "Grand_Staffs" in os.listdir(project_floder):
-            print(f"Grand_Staffs of {project_floder} already Exist")
-            return 1
-        output_folder = f"{project_floder}/Grand_Staffs"
-        os.makedirs(output_folder, exist_ok=True)
-        binary.save(output_folder, "PNG")
-        print("Grand_Staffs are extracted successfully")
-    return 1
-"""
+
+
 import cv2
 import numpy as np
 import os
@@ -22,13 +21,22 @@ def Line_Detection(project_folder, page, page_num):
         print(f"Error loading image: {image_path}")
         return None
     # Step 1: Binary thresholding
-    _, binary = cv2.threshold(image, 150, 255, cv2.THRESH_BINARY_INV)
+    _, binary = cv2.threshold(image, 170, 255, cv2.THRESH_BINARY_INV)
         
     # Step 2: Detect horizontal lines (staff lines)
     kernel_width = max(image.shape[1] // 30, 1)  # ensure kernel width is at least 1
     horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_width, 1))
     detected_lines = cv2.morphologyEx(binary, cv2.MORPH_OPEN, horizontal_kernel, iterations=2)
     print(f"Page {page_num+1} has extracted the lines successfully")
+
+    # Step 3: Save Staff Image
+    save_path = f"{project_folder}\Grand_Staff_IMG\Horizontal_Lines"
+    os.makedirs(save_path, exist_ok=True)
+    save_path = os.path.join(save_path, f"Staff_{page_num}.png")
+    cv2.imwrite(save_path, detected_lines)
+
+    print(f"Detected vertical lines saved to {save_path}")
+
     return detected_lines
 
 def Grand_Staff_Extraction(project_folder, page, detected_lines, page_num):
@@ -101,5 +109,5 @@ def main(target_folder):
     GRAND_STAFF_PATH = Save_Grand_Staffs(target_folder, all_grand_staff)
 
 if __name__ == "__main__":
-    project_folder = "Twinkle_Twinkle_Little_Star"
-    main(project_folder)
+    project_folder = ["Twinkle_Twinkle_Little_Star","Happy_birth_day"]
+    main(project_folder[1])
