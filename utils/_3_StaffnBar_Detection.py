@@ -41,88 +41,84 @@ def Staff_Thickness(image):
     # Compute average thickness
     return int(np.mean(thicknesses)) if thicknesses else 1  # Ensure at least 1px thickness
 
-def Staff_Position(gs_folder,gs,gs_num,file_input):
+def Staff_Position(gs_folder, gs, gs_num, file_input):
     image_path = os.path.join(gs_folder, gs)
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if image is None:
         print(f"Error loading image: {image_path}")
-        return [],[],None,None
+        return [], [], None, None
 
     # Step 1: Binary thresholding
     _, binary = cv2.threshold(image, 165, 255, cv2.THRESH_BINARY_INV)
         
     # Step 2: Detect horizontal lines (staff lines)
-    kernel_width = max(image.shape[1] // 30, 1)  # ensure kernel width is at least 1
+    kernel_width = max(image.shape[1] // 5, 1)  # Ensure kernel width is at least 1 pixel
     horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_width, 1))
     detected_lines = cv2.morphologyEx(binary, cv2.MORPH_OPEN, horizontal_kernel, iterations=2)
     print(f"Grandstaff {gs_num+1} has extracted the lines successfully")
 
-    # Step 3: Use contours to bound each line and separate them as Upper and Lower Staff
+    # Step 3: Find contours for detected staff lines
     contours, _ = cv2.findContours(detected_lines, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
         print("No contours found.")
-        return [],[],None,None
+        return [], [], None, None
     
-    # Get bounding boxes for each detected contour (line)
+    # Step 4: Get bounding boxes for each detected line
     bounding_boxes = [cv2.boundingRect(cnt) for cnt in contours]
-    # Sort the bounding boxes by their y-coordinate (top of the box)
-    bounding_boxes = sorted(bounding_boxes, key=lambda box: box[1])
-    
-    # Compute gaps between consecutive boxes (difference between the bottom of one and the top of the next)
-    gaps = []
-    for i in range(len(bounding_boxes) - 1):
-        # bottom of current box = y + h
-        gap = bounding_boxes[i+1][1] - (bounding_boxes[i][1] + bounding_boxes[i][3])
-        gaps.append(gap)
-    
-    # Assume the largest gap is the separation between upper and lower staff.
-    if gaps:
-        max_gap = max(gaps)
-        separation_index = gaps.index(max_gap) + 1
-    else:
-        separation_index = len(bounding_boxes) // 2  # fallback if gaps list is empty
 
-    #Spacing of staff line
+    # Step 5: Sort bounding boxes by Y-coordinate
+    bounding_boxes = sorted(bounding_boxes, key=lambda box: box[1])
+
+    # Step 6: Compute gaps between lines
+    gaps = [bounding_boxes[i+1][1] - (bounding_boxes[i][1] + bounding_boxes[i][3]) 
+            for i in range(len(bounding_boxes) - 1)]
+    
+    # Step 7: Identify the split point between Upper and Lower staff
+    if len(bounding_boxes) >= 10:  # Ensure there are enough staff lines
+        split_index = 5  # Each staff should have 5 lines
+    elif gaps:
+        split_index = gaps.index(max(gaps)) + 1  # Fallback: Use max gap
+    else:
+        split_index = len(bounding_boxes) // 2  # Default fallback
+
+    # Step 8: Compute staff spacing (median of detected gaps)
     staff_spacing = int(np.median(gaps)) if gaps else 1  # Ensure at least 1px spacing
 
-    # Separate bounding boxes into upper and lower staves
-    upper_staff_boxes = bounding_boxes[:separation_index]
-    lower_staff_boxes = bounding_boxes[separation_index:]
-    
-    # Convert grayscale image to BGR for annotation
+    # Step 9: Separate bounding boxes into upper and lower staves
+    upper_staff_boxes = bounding_boxes[:split_index]
+    lower_staff_boxes = bounding_boxes[split_index:]
+
+    # Step 10: Annotate the image with detected staff lines
     annotated_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-    
-    # Draw green rectangles for upper staff lines
+
     for box in upper_staff_boxes:
         x, y, w, h = box
-        cv2.rectangle(annotated_image, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        cv2.rectangle(annotated_image, (x, y), (x + w, y + h), (0, 255, 0), 2)  # Green for upper staff
 
-    # Draw red rectangles for lower staff lines
     for box in lower_staff_boxes:
         x, y, w, h = box
-        cv2.rectangle(annotated_image, (x, y), (x+w, y+h), (0, 0, 255), 2)
-    
-    # Save the annotated image
-    annotated_path = os.path.join(gs_folder, "Anotated_Grandstaff")
-    os.makedirs(annotated_path,exist_ok=True)
-    save_path =  os.path.join(gs_folder, "Anotated_Grandstaff",f"Annotated_Grandstaff_{gs_num+1}.png")
-    cv2.imwrite(save_path, annotated_image)
-    print(f"Annotated image saved to {save_path}")
+        cv2.rectangle(annotated_image, (x, y), (x + w, y + h), (0, 0, 255), 2)  # Red for lower staff
 
-    # Remove Staff Lines
-    cleaned_horizontal = cv2.subtract(binary,detected_lines)
+    # Step 11: Save the annotated image
+    annotated_path = os.path.join(gs_folder, "Annotated_Grandstaff")
+    os.makedirs(annotated_path, exist_ok=True)
+    annotated_save_path = os.path.join(annotated_path, f"Annotated_Grandstaff_{gs_num+1}.png")
+    cv2.imwrite(annotated_save_path, annotated_image)
+    print(f"Annotated image saved to {annotated_save_path}")
 
-    # Save the annotated image
-    no_staff_path = os.path.join(file_input,"No_Staff")
-    os.makedirs(no_staff_path,exist_ok=True)
-    save_path_2 =  os.path.join(no_staff_path,f"No_Staff_{gs_num+1}.png")
-    cv2.imwrite(save_path_2, cleaned_horizontal)
-    print(f"Annotated image saved to {save_path_2}")
+    # Step 12: Remove Staff Lines by subtracting detected lines (with dilation to clean artifacts)
+    dilated_lines = cv2.dilate(detected_lines, np.ones((3, 3), np.uint8), iterations=1)
+    cleaned_horizontal = cv2.subtract(binary, dilated_lines)
 
-    #Staff_Position
-    staff_pos = [upper_staff_boxes,lower_staff_boxes]
+    # Step 13: Save the cleaned image without staff lines
+    no_staff_path = os.path.join(file_input, "No_Staff")
+    os.makedirs(no_staff_path, exist_ok=True)
+    no_staff_save_path = os.path.join(no_staff_path, f"No_Staff_{gs_num+1}.png")
+    cv2.imwrite(no_staff_save_path, cleaned_horizontal)
+    print(f"Cleaned image saved to {no_staff_save_path}")
 
-    # Return the separated bounding boxes and the annotated image for further processing if needed.
+    # Step 14: Return staff positions, detected lines, cleaned image, and spacing
+    staff_pos = [upper_staff_boxes, lower_staff_boxes]
     return staff_pos, detected_lines, cleaned_horizontal, staff_spacing
 
 def Bar_Line_Detection(gs_path, gs_num, detected_line, bw_grandstaff,file_input, kernel_height):
@@ -167,6 +163,10 @@ def Bar_Line_Detection(gs_path, gs_num, detected_line, bw_grandstaff,file_input,
     # Define erosion kernel
     erosion_kernel = np.ones((2, 2), np.uint8)  # Small kernel to erode noise
     final_image = cv2.erode(final_image, erosion_kernel, iterations=1)
+    dilation_kernel = np.ones((2, 10), np.uint8)  # Small kernel to erode noise
+    final_image = cv2.dilate(final_image, dilation_kernel, iterations=1)
+    #close_kernel = np.ones((3, 2), np.uint8)
+    #final_image = cv2.morphologyEx(final_image, cv2.MORPH_CLOSE, close_kernel, iterations=2)
     #final_image = ur.remove_verti_hori_noise(final_image)
     
     # Step 8: Apply Morphological Opening to Reduce Noise
@@ -187,7 +187,7 @@ def Bar_Line_Detection(gs_path, gs_num, detected_line, bw_grandstaff,file_input,
     cv2.imwrite(final_save_path, final_image)
     print(f"Final cleaned image saved to {final_save_path}")
     
-    return final_image,vertical_positions
+    return final_image,vertical_positions,element_path
 
 def main(file_input, gs_path):
     grand_staffs = [g for g in os.listdir(gs_path) if g.lower().endswith("png")]
@@ -198,11 +198,11 @@ def main(file_input, gs_path):
         print(f"Staff Spacing: {staff_spacing}")
 
         # Detect Bar Lines (Barlines & Note Stems)
-        bar_lines,barline_pos = Bar_Line_Detection(gs_path, gs_num, staff_detected, cleaned_horizontal,file_input,9)
+        bar_lines,barline_pos,music_element_path = Bar_Line_Detection(gs_path, gs_num, staff_detected, cleaned_horizontal,file_input,9)
         print("************************************************")
         
 if __name__ == "__main__":
-    GRAND_STAFF_PATH = ["Twinkle_Twinkle_Little_Star\Grand_Staff_IMG","Happy_birth_day\Grand_Staff_IMG"]
-    file_input = ["Twinkle_Twinkle_Little_Star","Happy_birth_day"]
-    x = 0
+    GRAND_STAFF_PATH = ["Twinkle_Twinkle_Little_Star\Grand_Staff_IMG","Happy_birth_day\Grand_Staff_IMG","Sheet\If_You_Happy_And_You_Know_It\Grand_Staff_IMG"]
+    file_input = ["Twinkle_Twinkle_Little_Star","Happy_birth_day","If_You_Happy_And_You_Know_It"]
+    x = 2
     main(file_input[x], GRAND_STAFF_PATH[x])

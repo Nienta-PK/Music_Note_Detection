@@ -34,6 +34,7 @@ def get_file(file_np,DATASET_FOLDER):
 def save_convert_file(file, suffix, DATASET_FOLDER, POPPLER_PATH,threshold_value = 180):
     note_path = os.path.join(DATASET_FOLDER, file)
     output_folder = os.path.splitext(file)[0]
+    output_folder = os.path.join("Sheet",output_folder)
     os.makedirs(output_folder, exist_ok=True)
     
     if suffix == "png":

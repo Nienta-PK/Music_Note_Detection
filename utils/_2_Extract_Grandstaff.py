@@ -24,7 +24,7 @@ def Line_Detection(project_folder, page, page_num):
     _, binary = cv2.threshold(image, 170, 255, cv2.THRESH_BINARY_INV)
         
     # Step 2: Detect horizontal lines (staff lines)
-    kernel_width = max(image.shape[1] // 30, 1)  # ensure kernel width is at least 1
+    kernel_width = max(image.shape[1] // 5, 1)  # ensure kernel width is at least 1
     horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel_width, 1))
     detected_lines = cv2.morphologyEx(binary, cv2.MORPH_OPEN, horizontal_kernel, iterations=2)
     print(f"Page {page_num+1} has extracted the lines successfully")
@@ -109,5 +109,5 @@ def main(target_folder):
     GRAND_STAFF_PATH = Save_Grand_Staffs(target_folder, all_grand_staff)
 
 if __name__ == "__main__":
-    project_folder = ["Twinkle_Twinkle_Little_Star","Happy_birth_day"]
-    main(project_folder[1])
+    project_folder = ["Sheet/Twinkle_Twinkle_Little_Star","Sheet/Happy_birth_day","Sheet/If_You_Happy_And_You_Know_It"]
+    main(project_folder[2])
