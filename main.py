@@ -7,6 +7,8 @@ from utils._5_Detect_Room_Limitor import *
 from utils._6_Detect_Accidental import *
 from utils._7_Detect_Beat import *
 from utils._8_Pitch_Identification import *
+from utils._9_Play_Order import *
+from utils._10_Play_OnlyUpper import *
 
 from utils._Ex_Detect_Crop_MusicElement import *
 
@@ -36,7 +38,8 @@ def main():
         all_grand_staff.extend(grandstaffs_onePage_list)
     GRAND_STAFF_PATH = Save_Grand_Staffs(NOTE_PNG_PATH, all_grand_staff)
     print(GRAND_STAFF_PATH)
-
+    
+    All_NOTE_DICT = []
     #Go through each Grand_Staff
     grand_staffs = [g for g in os.listdir(GRAND_STAFF_PATH) if g.lower().endswith("png")]
     for gs_num, grand_staff in enumerate(grand_staffs):
@@ -76,9 +79,15 @@ def main():
         NoteHead_Dictionary, notehead_detected_image = NoteHead_Matching(Beat_Dict, beat_detected_image, project_path, file_input, gs_num)
         #print(NoteHead_Dictionary)
 
-        
-        # Detect note heads inside elements
-        #Note_Head_Detection(gs_image, gs_num, Beat_Dict.keys, annotated_image, project_path)
+        #Pitch_Detection
+        Note_Dict = Pitch_Detection(NoteHead_Dictionary, gs_image, Pitch_Indicator_Dictionary, staff_spacing)
+        Save_Pitch_Annotated(Note_Dict, gs_num, gs_image, project_path)
+
+        All_NOTE_DICT.append(Note_Dict)
+
+    #Music Playback
+    Play_Music(All_NOTE_DICT, bpm=60)
+    #Play_Upper_Staff_Notes(All_NOTE_DICT, gs_image.shape[0], bpm=60)
 
 if __name__ == "__main__":
     main()

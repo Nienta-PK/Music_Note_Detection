@@ -28,7 +28,7 @@ def Beat_Matching(Object_Pos_List, Base_Image, project_input, file_input, gs_num
 
     Beat_Dict = {}  # Store detected beats
     detected_positions = []
-    threshold = 0.4  # Matching similarity threshold
+    threshold = 0.6  # Matching similarity threshold
     print(Base_Image.shape)
     if len(Base_Image.shape) == 2:
         beat_detected_image = cv2.cvtColor(Base_Image, cv2.COLOR_GRAY2BGR)
@@ -76,10 +76,10 @@ def Beat_Matching(Object_Pos_List, Base_Image, project_input, file_input, gs_num
             Beat_Dict[(x, y, w, h)] = {"Beat_Type": beat_type, "Center_Point": (center_x, center_y)}
 
             # Draw bounding box, center point, and label on detected beat
-            cv2.rectangle(beat_detected_image, (x, y), (x + w, y + h), (0, 255, 255), 2)  # Yellow box
+            cv2.rectangle(beat_detected_image, (x, y), (x + w, y + h), (255, 0, 0), 2)  # Blue box
             cv2.circle(beat_detected_image, (center_x, center_y), 3, (0, 0, 255), -1)  # Red dot
             cv2.putText(beat_detected_image, beat_type, (x, y - 5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
 
     # Remove detected beats from Object_Pos_List
     Object_Pos_List = [pos for pos in Object_Pos_List if pos not in detected_positions]
