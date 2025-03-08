@@ -22,7 +22,7 @@ import cv2
 import numpy as np
 import sys
 sys.path.append(r'D:\2_2\Project\CV-music_note_extraction\Music_Note_Detection')    
-import Try01_upgrade_resolution as ur
+import utils._0_upgrade_resolution as ur
 
 def Staff_Thickness(image):
     """
