@@ -1,5 +1,6 @@
 import fluidsynth
 import time
+import os
 
 # FluidSynth Paths
 fluidsynth_bin_path = r"C:\tools\fluidsynth\bin"

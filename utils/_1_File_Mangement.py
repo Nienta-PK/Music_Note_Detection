@@ -19,7 +19,7 @@ import os
 import cv2
 import numpy as np
 from pdf2image import convert_from_path
-import Try01_upgrade_resolution as ur
+import _0_upgrade_resolution as ur
 
 def get_file(file_np,DATASET_FOLDER):
     files = os.listdir(DATASET_FOLDER)
